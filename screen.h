@@ -25,9 +25,14 @@ public slots:
     void quit();
 
 private:
+    void bounceOnce(QVector2D,QVector2D,bool);
+
     QVector2D mousePos();
+    void resizeFb(int,int);
 
     QGLFramebufferObject* shadowFb;
+    QGLFramebufferObject* bounceFb;
+    QFont debugFont;
 };
 
 #endif // SCREEN_H

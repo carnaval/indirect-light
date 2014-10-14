@@ -21,4 +21,6 @@ OTHER_FILES += \
     a.vs \
     std.vs \
     std.fs \
-    lit.fs
+    lit.fs \
+    bounce.fs \
+    light.fs
