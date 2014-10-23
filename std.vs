@@ -7,6 +7,7 @@ void main(void)
 {
     gl_Position = vec4(pos.xy, 0, pos.z);
     uv = pos.xy*0.5 + 0.5;
+    //if (abs(pos.z) < 0.0001) uv /= (abs(uv.x) + abs(uv.y));
     worldUv = worldPos*0.5 + 0.5;
     //uv.y = 1-uv.y;
     //uv = uv.yx;

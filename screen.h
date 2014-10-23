@@ -26,6 +26,7 @@ public slots:
 
 private:
     void bounceOnce(QVector2D,QVector2D,bool);
+    void glVertex(QVector3D);
 
     QVector2D mousePos();
     void resizeFb(int,int);

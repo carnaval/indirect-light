@@ -23,4 +23,5 @@ OTHER_FILES += \
     std.fs \
     lit.fs \
     bounce.fs \
-    light.fs
+    light.fs \
+    lightseg.fs

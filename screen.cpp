@@ -20,8 +20,8 @@ QVector2D Screen::mousePos() {
 }
 
 int polyBegin = -1;
-int lit = 0;
-int multi = 0;
+int lit = 1;
+int multi = 1;
 QVector2D lightStart;
 bool pressed = false;
 void Screen::mouseReleaseEvent(QMouseEvent*)
@@ -56,7 +56,7 @@ void Screen::keyPressEvent(QKeyEvent* e)
         }
         break;
     case Qt::Key_L:
-        lit = (lit + 1) % 3;
+        lit = (lit + 1) % 2;
         break;
     case Qt::Key_M:
         multi = (multi + 1) % 2;
@@ -92,6 +92,7 @@ QGLShaderProgram* lit_shader = 0;
 QGLShaderProgram* std_shader = 0;
 QGLShaderProgram* bounce_shader = 0;
 QGLShaderProgram* light_shader = 0;
+QGLShaderProgram* lightseg_shader = 0;
 void Screen::initializeGL()
 {
     initializeGLFunctions();
@@ -100,6 +101,7 @@ void Screen::initializeGL()
     lit_shader = compileShader("../spom/std.vs", "../spom/lit.fs");
     bounce_shader = compileShader("../spom/std.vs", "../spom/bounce.fs");
     light_shader = compileShader("../spom/std.vs", "../spom/light.fs");
+    lightseg_shader = compileShader("../spom/std.vs", "../spom/lightseg.fs");
     //blur_shader = compileShader("../giess/a.vs", "../giess/prop2.fs");
     //ping = bindTexture(QImage("../giess/a.png"));
     //pong = bindTexture(QImage("../giess/a.png"));
@@ -123,6 +125,9 @@ void Screen::initializeGL()
         exit(1);
     }
     debugFont = QFont("Helvetica", 16, false, false);
+    glEnable(GL_CULL_FACE);
+    starts.append(QVector2D(-0.3, 0));
+    ends.append(QVector2D(0.3, 0));
 }
 void
 Screen::resizeGL(int w, int h)
@@ -140,43 +145,129 @@ void Screen::resizeFb(int w, int h)
     shadowFb = new QGLFramebufferObject(w, h, QGLFramebufferObject::CombinedDepthStencil, GL_TEXTURE_2D, GL_RGBA);
 }
 
-void Screen::bounceOnce(QVector2D m, QVector2D end, bool point)
+void Screen::glVertex(QVector3D v) { glVertex3f(v.x(),v.y(),v.z()); }
+
+static float fsign(float f) { if(f >= 0) return 1.; return 0.; }
+void Screen::bounceOnce(QVector2D a, QVector2D b, bool point)
 {
     const int N = 64;
-    QVector2D dir = end - m;
-    dir /= (N+1);
+    QVector2D dir = b - a;
     light_shader->bind();
-    light_shader->setUniformValue("col", QVector3D(1, 1, 1));
-    light_shader->setUniformValue("origin", (m+end)/2);
+
+    light_shader->setUniformValue("origin", (a+b)/2);
     glClear(GL_STENCIL_BUFFER_BIT);
-    for(int j=0; j <= N+1; j++) {
-        glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
+        //glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
         glStencilFunc(GL_ALWAYS, 0, 0xFF); glStencilOp(GL_KEEP, GL_INCR, GL_INCR);
-    glBegin(GL_TRIANGLES);
+    //glCullFace(GL_FRONT);
+        glDisable(GL_CULL_FACE);
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_ONE, GL_ONE);
+
     for(int i=0; i < ends.length(); i++) {
         float sx = starts[i].x(), sy = starts[i].y(),
               ex = ends[i].x(),   ey = ends[i].y();
-        glVertex3f(sx, sy, 1);
-        glVertex3f(sx-m.x(), sy-m.y(), 0);
-        glVertex3f(ex, ey, 1);
-        glVertex3f(ex, ey, 1);
-        glVertex3f(sx - m.x(), sy - m.y(), 0);
-        glVertex3f(ex - m.x(), ey - m.y(), 0);
-    }
-    glEnd();
+        QVector2D s = starts[i], e = ends[i];
+        QVector3D projA, projB;
+        if (point) {
+            projA = QVector3D(s-a, 0);
+            projB = QVector3D(e-a, 0);
+        } else {
+            QVector2D da = s-a, db = e-b, ba = a-b;
+            QVector2D ab = (a-b);
 
-    if (point) break;
-    m += dir;
+            QVector2D nb(db.y(), -db.x()), na(-da.y(), da.x());
+            float ga = QVector2D::dotProduct(nb, -ab),
+                  gb = QVector2D::dotProduct(na, ab);
+            nb *= fsign(ga);
+            na *= fsign(gb);
+            qDebug() << "G " << ga << gb;
+            //nb.normalize(); na.normalize();
+            ga = qAbs(ga); gb = qAbs(gb);
+            float an = qMax(QVector2D::dotProduct(da, nb), 0.f),
+                  bn = qMax(QVector2D::dotProduct(db, na), 0.f);
+            projA = QVector3D(a*an + ga*da, an);
+            projB = QVector3D(b*bn + gb*db, bn);
+            /*projB = QVector3D(da, 0);
+            projA = QVector3D(db, 0);*/
+            qDebug() << "Proj " << projA << projB;
+            lightseg_shader->bind();
+            lightseg_shader->setUniformValue("screen", QVector2D(width(), height()));
+            lightseg_shader->setUniformValue("col", QVector3D(1, 0, 0));
+            lightseg_shader->setUniformValue("emitA", a);
+            lightseg_shader->setUniformValue("emitB", b);
+            lightseg_shader->setUniformValue("casterA", s);
+            lightseg_shader->setUniformValue("casterB", e);
+            if (multi) {
+            glBegin(GL_QUADS);
+            glVertex3f(-1, -1, 1);
+            glVertex3f(1, -1, 1);
+            glVertex3f(1, 1, 1);
+            glVertex3f(-1, 1, 1);
+            glEnd();
+            continue;
+            //break;
+            }
+            glBegin(GL_TRIANGLES);
+            // partial1
+            glVertex(QVector3D(s, 1));
+            glVertex(QVector3D(s-a, 0));
+            glVertex(QVector3D(s-b, 0));
+            // partial2
+            glVertex(QVector3D(e, 1));
+            glVertex(QVector3D(e-a, 0));
+            glVertex(QVector3D(e-b, 0));
+            // full
+            glVertex(QVector3D(s, 1));
+            glVertex(QVector3D(e, 1));
+            glVertex(projA);
+            /*glVertex(QVector3D(s, 1));
+            glVertex(projA);
+            glVertex(QVector3D(e, 1));*/
+            glVertex(QVector3D(e, 1));
+                        glVertex(projB);
+                        glVertex(projA);
+            glEnd();
+             /*lightseg_shader->setUniformValue("emitA", a);
+            lightseg_shader->setUniformValue("emitB", b);
+            lightseg_shader->setUniformValue("caster", e);
+            glBegin(GL_TRIANGLES);
+            glVertex(QVector3D(e, 1));
+            glVertex(QVector3D(e-b, 0));
+            glVertex(QVector3D(e-a, 0));
+            glEnd();*/
+            /*light_shader->setUniformValue("col", QVector3D(0, 0, 1));
+            glBegin(GL_TRIANGLES);
+
+            glEnd();*/
+        }
+        //qDebug() << a << b;
+        light_shader->bind();
+        light_shader->setUniformValue("col", QVector3D(1, 1, 1));
+        /*glBegin(GL_LINES);
+        glVertex(QVector3D(a,1));glVertex(projA);
+        glEnd(); continue;*/
+
+        /*glBegin(GL_TRIANGLES);
+        glVertex3f(s.x(), s.y(), 1);
+        glVertex3f(e.x(), e.y(), 1);
+        glVertex(projA);
+
+        glVertex3f(e.x(), e.y(), 1);
+        glVertex(projB);
+        glVertex(projA);
+        glEnd();*/
     }
+    glDisable(GL_BLEND);
+    //glCullFace(GL_BACK);
     glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
 
-    glStencilFunc(GL_GEQUAL, point ? 0 : 2*N, 0xFF); glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
+    /*glStencilFunc(GL_GEQUAL, point ? 0 : 0, 0xFF); glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
     glBegin(GL_QUADS);
     glVertex3f(-1, -1, 1);
     glVertex3f(1, -1, 1);
     glVertex3f(1, 1, 1);
     glVertex3f(-1, 1, 1);
-    glEnd();
+    glEnd();*/
 
     glStencilFunc(GL_ALWAYS, 0, 0xFF);
     glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
@@ -209,7 +300,7 @@ void Screen::paintGL()
 
 
     QVector2D m = mousePos();
-    bounceOnce(m, lightStart, !pressed);
+    bounceOnce(lightStart, m, !pressed);
 
     // 2. compute bounce
     bounceFb->bind();
@@ -252,7 +343,7 @@ void Screen::paintGL()
     }
     //qDebug() << "mx " << i << mx[i] << mn[i];
     }
-    if (multi > 0) {
+    if (0 && multi > 0) {
     std_shader->bind();
 shadowFb->bind();
 glViewport(0, 0, width(), height());
