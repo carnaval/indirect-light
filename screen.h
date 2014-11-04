@@ -25,7 +25,7 @@ public slots:
     void quit();
 
 private:
-    void bounceOnce(QVector2D,QVector2D,bool);
+    void bounceOnce(QVector2D,QVector2D,bool,float);
     void glVertex(QVector3D);
 
     QVector2D mousePos();
@@ -33,6 +33,7 @@ private:
 
     QGLFramebufferObject* shadowFb;
     QGLFramebufferObject* bounceFb;
+    QGLFramebufferObject* synthFb;
     QFont debugFont;
 };
 
