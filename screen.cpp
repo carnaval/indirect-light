@@ -210,7 +210,7 @@ void Screen::bounceOnce(QVector2D a, QVector2D b, bool point, float I)
     for(int i=0; i < ends.length(); i++) {
         float sx = starts[i].x(), sy = starts[i].y(),
               ex = ends[i].x(),   ey = ends[i].y();
-        float depth = (float)i/(ends.length()-1);
+        
         QVector2D s = starts[i], e = ends[i];
         QVector3D projA, projB;
         if (point) {
@@ -255,21 +255,49 @@ glEnd();
                   eSide = QVector2D::dotProduct(e-a,n_ab);
             if (sSide < 0 &&
                 eSide < 0) continue;
-            /*if (QVector2D::dotProduct(a-s,n_se) <= 0 ||
-                QVector2D::dotProduct(b-s,n_se) <= 0) continue;*/
+            float aSide = QVector2D::dotProduct(a-s,n_se),
+                  bSide = QVector2D::dotProduct(b-s,n_se);
             if (sSide < 0) projA = QVector3D(e-b, 0);
             if (eSide < 0) projB = QVector3D(s-a, 0);
+            if (aSide < 0) {
+                projA = QVector3D(e, 1);
+               // projB = QVector3D(s-b, 0);
+                projB = QVector3D(s-b, 0);
+            }
+            if (bSide < 0) {
+                projB = QVector3D(s, 1);
+                projA = QVector3D(e-a, 0);
+            }
+            QVector3D pa = QVector3D(e-a, 0);
+            QVector3D pb = QVector3D(s-b, 0);
+            if (aSide < 0) pa = QVector3D(e-s,0);
+            if (bSide < 0) pb = QVector3D(s-e,0);
             lightseg_shader->bind();
             glBegin(GL_TRIANGLES);
             // partial1
-            X;glVertex(QVector3D(s, 1));
+            /*X;glVertex(QVector3D(s, 1));
             X;glVertex(QVector3D(s-a, 0));
+            X;glVertex(QVector3D(s-b, 0));*/
+            X;glVertex(QVector3D(s, 1));
+            X;glVertex(projA);
+            X;glVertex(pb);
+
+                        /*X;glVertex(QVector3D(QVector2D(projA)-b, 0));
             X;glVertex(QVector3D(s-b, 0));
+            X;glVertex(projA);*/
+
             // partial2
-            X;glVertex(QVector3D(e, 1));
+            /*X;glVertex(QVector3D(e, 1));
             X;glVertex(QVector3D(e-a, 0));
-            X;glVertex(QVector3D(e-b, 0));
+            X;glVertex(QVector3D(e-b, 0));*/
+                X;glVertex(pa);
+                X;glVertex(projB);
+                X;glVertex(QVector3D(e, 1));
+                
             glEnd();
+            qDebug() << aSide << bSide;
+
+//            continue;
             flat_shader->bind();
             flat_shader->setUniformValue("col", QVector3D(1,0, 0));
             glBegin(GL_TRIANGLES);

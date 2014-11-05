@@ -41,8 +41,8 @@ void main(void)
     float a1 = atan(emitB.y-p.y,emitB.x-p.x),
           a2 = atan(emitA.y-p.y,emitA.x-p.x);
     float nt = clamp(mod((a1-a2)/pi, 2),0,1);
-    gl_FragColor = vec4((clamp(pre-prs,0,1)),il*nt/length(ab),0, 1);
-    //gl_FragColor = vec4((s),(s2),0, 1);
+    gl_FragColor = vec4((clamp(pre-prs,0,1)),0*il*nt/length(ab),0, 1);
+    //gl_FragColor = vec4((s),0/*,(s2)*/,0, 1);
 
 //    gl_FragColor = vec4(1,attr1.x,attr1.y, 1);
 }
