@@ -179,7 +179,11 @@ void Screen::resizeFb(int w, int h)
 
 void Screen::glVertex(QVector3D v) { glVertex3f(v.x(),v.y(),v.z()); }
 
-static float fsign(float f) { if(f >= 0) return 1.; return 0.; }
+static float fsign(float f) { if(f >= 0) return 1.; return -1.; }
+static QVector3D mid(QVector3D a, QVector3D b) {
+    return QVector3D(0.5f*(a.x() + b.x()), 0.5f*(a.y() + b.y()*a.z()), a.z()*b.z());
+}
+
 void Screen::bounceOnce(QVector2D a, QVector2D b, bool point, float I)
 {
     const int N = 64;
@@ -253,35 +257,48 @@ glEnd();
             }
             float sSide = QVector2D::dotProduct(s-a,n_ab),
                   eSide = QVector2D::dotProduct(e-a,n_ab);
-            if (sSide < 0 &&
-                eSide < 0) continue;
             float aSide = QVector2D::dotProduct(a-s,n_se),
                   bSide = QVector2D::dotProduct(b-s,n_se);
-            if (sSide < 0) projA = QVector3D(e-b, 0);
-            if (eSide < 0) projB = QVector3D(s-a, 0);
-            if (aSide < 0) {
-                projA = QVector3D(e, 1);
+            qDebug() << aSide << bSide << sSide << eSide;
+            if (sSide < 0 && eSide < 0) continue;
+            if (aSide < 0 && bSide < 0) continue;
+            if (sSide < 0) {
+                projA = QVector3D(s-a, 0);
+                projB = QVector3D(a-b, 0);
+            } else if (eSide < 0) {
+                projA = QVector3D(b-a, 0);
+                projB = QVector3D(e-b, 0);
+            } else if (aSide < 0) {
+                projA = QVector3D(e-s, 0);
+                projB = QVector3D(e, 1);
                // projB = QVector3D(s-b, 0);
-                projB = QVector3D(s-b, 0);
             }
-            if (bSide < 0) {
-                projB = QVector3D(s, 1);
-                projA = QVector3D(e-a, 0);
+            else if (bSide < 0) {
+                projA = QVector3D(s, 1);
+                projB = QVector3D(s-e, 0);
             }
-            QVector3D pa = QVector3D(e-a, 0);
-            QVector3D pb = QVector3D(s-b, 0);
-            if (aSide < 0) pa = QVector3D(e-s,0);
-            if (bSide < 0) pb = QVector3D(s-e,0);
             lightseg_shader->bind();
             glBegin(GL_TRIANGLES);
             // partial1
             /*X;glVertex(QVector3D(s, 1));
             X;glVertex(QVector3D(s-a, 0));
-            X;glVertex(QVector3D(s-b, 0));*/
+            X;glVertex(QVectorD(s-b, 0));*/
+
             X;glVertex(QVector3D(s, 1));
             X;glVertex(projA);
-            X;glVertex(pb);
+            X;glVertex(QVector3D(s-b,0));
 
+
+            X;glVertex(QVector3D(e,1));
+            X;glVertex(QVector3D(e-a,0));
+            X;glVertex(projB);
+            if (projA.distanceToPoint(projB) <= 0.001)
+            { X;glVertex(projA); }
+            else {
+            X;glVertex(QVector3D(e-a,0.f)); }
+            //qDebug() << "Pro " << projA << projB << mid(projA,projB);
+            X;glVertex(QVector3D(e-a,0));
+            X;glVertex(QVector3D(s-b,0));
                         /*X;glVertex(QVector3D(QVector2D(projA)-b, 0));
             X;glVertex(QVector3D(s-b, 0));
             X;glVertex(projA);*/
@@ -290,14 +307,12 @@ glEnd();
             /*X;glVertex(QVector3D(e, 1));
             X;glVertex(QVector3D(e-a, 0));
             X;glVertex(QVector3D(e-b, 0));*/
-                X;glVertex(pa);
+                /*X;glVertex(pa);
                 X;glVertex(projB);
-                X;glVertex(QVector3D(e, 1));
+                X;glVertex(QVector3D(e, 1));*/
                 
             glEnd();
-            qDebug() << aSide << bSide;
 
-//            continue;
             flat_shader->bind();
             flat_shader->setUniformValue("col", QVector3D(1,0, 0));
             glBegin(GL_TRIANGLES);
@@ -358,6 +373,8 @@ glEnd();
     glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
     synthFb->bind();
     synth_shader->bind();
+    synth_shader->setUniformValue("a", a);
+    synth_shader->setUniformValue("b", b);
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, shadowFb->texture());
     glBegin(GL_QUADS);
