@@ -31,6 +31,8 @@ int NICE = 0;
 QVector2D lightStart;
 QVector2D lightEnd;
 bool pressed = false;
+QVector<QVector2D> lbegin;
+QVector<QVector2D> lend;
 void Screen::mouseReleaseEvent(QMouseEvent*)
 {
         pressed = false;
@@ -73,6 +75,10 @@ void Screen::keyPressEvent(QKeyEvent* e)
         NICE = (NICE + 1) % 3;
         break;
     case Qt::Key_P: P = !P; break;
+    case Qt::Key_S:
+        lbegin.push_back(lightStart);
+        lend.push_back(lightEnd);
+        break;
     case Qt::Key_D:
         f.open(QIODevice::Text | QIODevice::ReadWrite);
     {
@@ -219,11 +225,6 @@ static QVector3D mid(QVector3D a, QVector3D b) {
 
 void Screen::bounceOnce(QVector2D a, QVector2D b, bool point, float I)
 {
-    const int N = 64;
-    QVector2D dir = b - a;
-    light_shader->bind();
-
-    //light_shader->setUniformValue("origin", (a+b)/2);
     glClear(GL_STENCIL_BUFFER_BIT);
     shadowFb->bind();
     glClearColor(0,0,0,1);
@@ -422,6 +423,7 @@ glEnd();
 #include <QTime>
 QTime frameTime;
 
+
 void Screen::paintGL()
 {
     float frameDt = frameTime.elapsed();
@@ -448,18 +450,21 @@ void Screen::paintGL()
         lightEnd = QVector2D(mm.x()+0.1,mm.y());
     }
 
-    QTransform t;
-    QVector2D mid = 0.5*(lightStart + lightEnd);
-    t.translate(mid.x(),mid.y());
 
-    t.rotateRadians(angle);
-    t.translate(-mid.x(),-mid.y());
     if (NICE == 0)
         bounceOnce(lightStart, lightEnd, pressed, 1.5);
     if (NICE >= 1) {
-        QPointF a = t.map(lightStart.toPointF());
-        QPointF b = t.map(lightEnd.toPointF());
+        for(int i = 0; i < lbegin.length(); i++) {
+            QTransform t;
+            QVector2D mid = 0.5*(lbegin[i] + lend[i]);
+            t.translate(mid.x(),mid.y());
+
+            t.rotateRadians(angle);
+            t.translate(-mid.x(),-mid.y());
+        QPointF a = t.map(lbegin[i].toPointF());
+        QPointF b = t.map(lend[i].toPointF());
         bounceOnce(QVector2D(a.x(),a.y()),QVector2D(b.x(),b.y()), pressed, 1.5);
+        }
     }
 if(!multi)goto bounce_end;
     // 2. compute bounce
