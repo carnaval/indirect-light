@@ -3,7 +3,8 @@ TEMPLATE = app
 QT += qml quick widgets opengl
 
 SOURCES += main.cpp \
-    screen.cpp
+    screen.cpp \
+    save.cpp
 
 RESOURCES += qml.qrc
 
@@ -15,7 +16,9 @@ include(deployment.pri)
 
 HEADERS += \
     screen.h \
-    map.h
+    map.h \
+    geom.h \
+    save.h
 
 OTHER_FILES += \
     a.vs \

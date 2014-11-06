@@ -3,7 +3,7 @@
 #include <QQuickView>
 #include <QVBoxLayout>
 #include <QWidget>
-
+#include "save.h"
 #include "screen.h"
 
 int main(int argc, char *argv[])

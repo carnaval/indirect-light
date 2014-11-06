@@ -3,6 +3,7 @@ uniform vec3 col;
 in vec2 uv;
 uniform vec2 a,b;
 const float pi = 3.141592653;
+uniform float E;
 void main(void)
 {
     vec4 s = texture(tex, uv);
@@ -12,7 +13,8 @@ void main(void)
     vec2 n = vec2(-d.y,d.x);
     float a1 = atan(b.y-p.y,b.x-p.x),
           a2 = atan(a.y-p.y,a.x-p.x);
+    vec2 mid = 0.5*a+0.5*b;
     float I = clamp(mod((a1-a2)/pi, 2),0,1)*sign(max(dot(n,p-a),0));
-    float l = I*o;
+    float l = I*o*E;
     gl_FragColor = vec4(l,0,0, 1);
 }
