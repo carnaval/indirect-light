@@ -90,6 +90,15 @@ void Screen::keyPressEvent(QKeyEvent* e)
     }
 }
 
+void Screen::setStage(const QString &name)
+{
+    if (name == "raw") {
+        lit = 0;
+    } else if (name == "light") {
+        lit = 1;
+    }
+}
+
 void Screen::quit() { exit(0); }
 
 const char* GLSL_PREFIX =

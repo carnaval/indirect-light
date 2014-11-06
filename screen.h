@@ -23,6 +23,7 @@ public:
     void resizeGL(int,int);
 public slots:
     void quit();
+    void setStage(const QString& name);
 
 private:
     void bounceOnce(QVector2D,QVector2D,bool,float);
