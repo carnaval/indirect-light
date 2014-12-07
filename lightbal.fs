@@ -4,14 +4,19 @@ uniform vec2 _emitA, _emitB;
 in vec4 attr1;
 uniform vec2 screen;
 uniform float il;
-#define emitA _emitA
-#define emitB _emitB
+
 const float pi = 3.141592653;
 void main(void)
 {
     vec2 casterA = attr1.xy, casterB = attr1.zw;
     vec2 uv2 = gl_FragCoord.xy/screen;
     vec2 p = 2*uv2 - 1;
+
+    vec2 mid = 0.5*(_emitA + _emitB);
+    vec2 pmid = p-mid;
+    float R = length(_emitB-_emitA)/2;
+    vec2 n_pmid = normalize(vec2(-pmid.y, pmid.x));
+    vec2 emitA=mid+n_pmid*R,emitB=mid-n_pmid*R;
 
     vec2 ab = emitB-emitA;
     vec2 ap = p-emitA;
@@ -37,7 +42,7 @@ void main(void)
     if (dot(emitA-casterA,n_se) > 0 && dot(emitB-casterA,n_se) > 0) { prs = 1; pre = 0;}
     if (s2 < 0) { prs = 1; pre = 0; }
     if (ts < 0 && te < 0) { prs = 1; pre = 0; }
-    if (s < 0) { prs = 0; pre = 1; }
+    //if (s < 0) { prs = 0; pre = 1; }
 
     float a1 = atan(emitB.y-p.y,emitB.x-p.x),
           a2 = atan(emitA.y-p.y,emitA.x-p.x);

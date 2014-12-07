@@ -7,6 +7,7 @@
 #include <QKeyEvent>
 #include <QVector2D>
 #include <QGLFramebufferObject>
+#include <QWheelEvent>
 
 class Screen : public QGLWidget, private QGLFunctions
 {
@@ -17,6 +18,7 @@ public:
     virtual void keyPressEvent(QKeyEvent*);
     virtual void mouseReleaseEvent(QMouseEvent*);
     virtual void mousePressEvent(QMouseEvent*);
+    virtual void wheelEvent(QWheelEvent*);
 
     void initializeGL();
     void paintGL();
@@ -26,7 +28,7 @@ public slots:
     void setStage(const QString& name);
 
 private:
-    void bounceOnce(QVector2D,QVector2D,bool,float);
+    void bounceOnce(QVector2D,QVector2D,float,int);
     void glVertex(QVector3D);
 
     QVector2D mousePos();
@@ -34,6 +36,7 @@ private:
 
     QGLFramebufferObject* shadowFb;
     QGLFramebufferObject* bounceFb;
+    QGLFramebufferObject* bounceFbPong;
     QGLFramebufferObject* synthFb;
     QFont debugFont;
 };

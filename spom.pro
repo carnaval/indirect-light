@@ -29,4 +29,7 @@ OTHER_FILES += \
     light.fs \
     lightseg.fs \
     synth.fs \
-    flat.fs
+    flat.fs \
+    synth_seg.fs \
+    synth_bal.fs \
+    lightbal.fs
