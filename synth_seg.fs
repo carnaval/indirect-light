@@ -19,9 +19,15 @@ void main(void)
     //float I = clamp(-dot(mid-p,n)/(length(d))/(1+sqrt(dot(a-p,a-p)*dot(b-p,b-p))),0,1)*(1+sA);
     float nearT = clamp(dot(p-a,d)/dot(d,d),0,1);
     float dist = length(a + nearT*d - p);
-    float I = clamp(-dot(mid-p,n)/(length(d)),0,1)/(dist*(1+dist));
+    //float I = clamp(-dot(mid-p,n)/(length(d)),0,1)/(dist*(1+dist));
     //float I = clamp(-dot(mid-p,n)/(length(d))/(1+dot(a-p,a-p)*dot(b-p,b-p)),0,1)*(1+sA)*(1+sA)*(1+sA);
-    float l = /* I* */o*E;
+    vec2 D = normalize(b-a);
+    vec2 N = vec2(-D.y,D.x);
+    vec2 pt = p-mid;
+    vec2 pxy = vec2(dot(D,pt), dot(N,pt))/length(b-a);
+    float I = length(pxy + vec2(0, 1)) - length(pxy - vec2(0, 1));
+    I /= (1+pxy.y)*(1+pxy.y);
+    float l = I*o*E;
     if (dot(mid-p,n) > 0) l = 0;
     gl_FragColor = vec4(l,0,0, 1);
 }

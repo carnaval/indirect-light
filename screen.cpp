@@ -150,7 +150,7 @@ QGLShaderProgram* synthbal_shader = 0;
 QGLShaderProgram* lightseg_shader = 0;
 QGLShaderProgram* lightbal_shader = 0;
 QGLShaderProgram* flat_shader = 0;
-int lvl = 0;
+int lvl = 1;
 float angle = 0;
 #define BOUNCE_RES 128
 #define MAX_WALL 256
@@ -492,7 +492,7 @@ void Screen::paintGL()
 
     if (NICE == 0 || NICE == 2)
         bounceOnce(lightStart, lightEnd, I, BAL);
-    if (NICE >= 1) {
+    if (NICE == 1) {
         for(int i = 0; i < lbegin.length(); i++) {
             QTransform t;
             QVector2D mid = 0.5*(lbegin[i] + lend[i]);
@@ -519,19 +519,20 @@ if(!multi)goto bounce_end;
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, synthFb->texture());
     glBegin(GL_LINES);
+    bounce_shader->setUniformValue("lightpos", (lightStart+lightEnd)*0.5);
     for(int i=0; i < g.ends.length(); i++) {
         float sx = g.starts[i].x(), sy = g.starts[i].y(),
               ex = g.ends[i].x(),   ey = g.ends[i].y();
         QVector2D no(-(ey-sy), ex-sx);
-        no.normalize(); no *= -0.001;
-        sx += no.x(); ex += no.x(); sy += no.y(); ey += no.y();
+        no.normalize();
+        sx += no.x()*-0.001; ex += no.x()*-0.001; sy += no.y()*-0.001; ey += no.y()*-0.001;
         //glVertex3f(sx, sy, 1);
         //glVertex3f(ex, ey, 1);
         float x = (2*(float)i)/MAX_WALL - 1;
         float len = QVector2D(ex-sx, ey-sy).length();
-        glVertexAttrib4f(1, sx, sy,0,0);
+        glVertexAttrib4f(1, sx, sy,no.x(),no.y());
         glVertex3f(x, -1, 1);
-        glVertexAttrib4f(1, ex, ey,0,0);
+        glVertexAttrib4f(1, ex, ey,no.x(),no.y());
         glVertex3f(x, 1, 1);
     }
     glEnd();
@@ -576,9 +577,10 @@ glViewport(0, 0, width(), height());
 
     for (int i=0; i < g.ends.length(); i++) {
         avg[i] /= BOUNCE_RES;
-        avg[i] *= g.starts[i].distanceToPoint(g.ends[i]);
-        float M = mx[i], m = mn[i];
-        if (M-m <= 0.1/* || avg[i] <= 0.05*/) continue;
+        //avg[i] *= g.starts[i].distanceToPoint(g.ends[i]);
+        float M = mx[i], m = mn[i], a = avg[i];
+        //M = 1; m = 0; a = 1;
+        if (M-m <= 0.01 || avg[i] <= 0.05) continue;
         float sx = g.starts[i].x(), sy = g.starts[i].y(),
               ex = g.ends[i].x(),   ey = g.ends[i].y();
         QVector2D d(ex-sx, ey-sy);
@@ -587,7 +589,7 @@ glViewport(0, 0, width(), height());
         QVector2D no(-(ey-sy), ex-sx);
         no.normalize(); no *= -0.001;
         sx += no.x(); ex += no.x(); sy += no.y(); ey += no.y();
-        bounceOnce(QVector2D(ex,ey), QVector2D(sx,sy),avg[i]);
+        bounceOnce(QVector2D(ex,ey), QVector2D(sx,sy),a);
     }
 
 }
